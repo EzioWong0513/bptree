@@ -1,7 +1,7 @@
 #ifndef _BPTREE_HEAP_FILE_H_
 #define _BPTREE_HEAP_FILE_H_
 
-#include "bptree/page.h"
+#include "page.h"
 
 #include <mutex>
 #include <stdexcept>
@@ -23,6 +23,7 @@ public:
     size_t get_page_size() const { return page_size; }
 
     PageID new_page();
+    void initialize(size_t num_pages);
     void read_page(Page* page, boost::upgrade_to_unique_lock<Page>& lock);
     void write_page(Page* page, boost::upgrade_lock<Page>& lock);
 

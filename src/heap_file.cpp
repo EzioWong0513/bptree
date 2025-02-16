@@ -1,4 +1,4 @@
-#include "bptree/heap_file.h"
+#include "../include/bptree/heap_file.h"
 
 #include <cstdlib>
 #include <fcntl.h>
@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sstream>
+#include <iostream>
 
 namespace bptree {
 
@@ -37,6 +38,7 @@ PageID HeapFile::new_page()
     return new_page;
 }
 
+
 void HeapFile::read_page(Page* page, boost::upgrade_to_unique_lock<Page>& lock)
 {
     std::lock_guard<std::mutex> guard(mutex);
@@ -47,6 +49,8 @@ void HeapFile::read_page(Page* page, boost::upgrade_to_unique_lock<Page>& lock)
         ss << "page ID (" << pid << ") is invalid";
         throw IOException(ss.str().c_str());
     }
+
+    std::cout << "Reading page ID: " << pid << ", Total pages:" << file_size_pages << std::endl;
 
     if (pid >= file_size_pages) {
         std::stringstream ss;

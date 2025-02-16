@@ -1,8 +1,8 @@
 #ifndef _BPTREE_TREE_NODE_H_
 #define _BPTREE_TREE_NODE_H_
 
-#include "bptree/page.h"
-#include "bptree/serializer.h"
+#include "page.h"
+#include "serializer.h"
 
 #include <atomic>
 #include <functional>

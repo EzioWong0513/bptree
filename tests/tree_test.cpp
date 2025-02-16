@@ -1,14 +1,16 @@
 #include <gtest/gtest.h>
 
-#include "bptree/heap_page_cache.h"
-#include "bptree/mem_page_cache.h"
-#include "bptree/tree.h"
+#include "../include/bptree/heap_page_cache.h"
+#include "../include/bptree/mem_page_cache.h"
+#include "../include/bptree/tree.h"
 
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <thread>
+
+#include <gperftools/profiler.h>
 
 using namespace std::chrono;
 
@@ -36,7 +38,7 @@ TEST(TreeTest, HandleInsert2)
 {
     const int N = 1000000;
     bptree::MemPageCache page_cache(4096);
-    bptree::BTree<100, KeyType, ValueType> tree(&page_cache);
+    bptree::BTree<256, KeyType, ValueType> tree(&page_cache);
 
     for (int i = 0; i < N; i++) {
         tree.insert(i, i + 1);
@@ -102,25 +104,58 @@ TEST(TreeTest, HandleConcurrentInsert)
               << std::endl;
 }
 
-TEST(TreeTest, TreeIterator)
+TEST(TreeTest, HandleConcurrentInsert2)
 {
-    bptree::MemPageCache page_cache(4096);
-    bptree::BTree<100, KeyType, ValueType> tree(&page_cache);
+    const int N = 1000;
+    bptree::HeapPageCache page_cache("/home/ezio/Documents/bptree/tmp/tree.heap", true, 4096);
+    bptree::BTree<256, KeyType, ValueType> tree(&page_cache);
 
-    unsigned long long sum1, sum2;
-    sum1 = sum2 = 0;
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-    for (int i = 0; i < 1000; i++) {
-        tree.insert(i, i);
-        sum1 += i;
+    std::vector<std::thread> threads;
+
+    ProfilerStart("profile.prof");
+
+    for (int i = 0; i < 10; i++) {
+        threads.emplace_back([i, &tree]() {
+            for (int j = 0; j < N; j++) {
+                tree.insert(i * N + j, j);
+            }
+        });
     }
 
-    tree.print(std::cout);
-    for (auto&& p : tree) {
-        std::cout << p.first << ", ";
-        sum2 += p.first;
+    for (auto&& p : threads) {
+        p.join();
     }
-    std::cout << std::endl;
 
-    EXPECT_EQ(sum1, sum2);
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+    threads.clear();
+    for (int i = 0; i < 10; i++) {
+        threads.emplace_back([i, &tree]() {
+            std::vector<ValueType> values;
+            for (int j = 0; j < N; j++) {
+                values.clear();
+                tree.get_value(i * N + j, values);
+                EXPECT_EQ(values.size(), 1);
+                if (values.size() == 1) {
+                    EXPECT_EQ(values.front(), j);
+                }
+            }
+        });
+    }
+
+    for (auto&& p : threads) {
+        p.join();
+    }
+
+    high_resolution_clock::time_point t3 = high_resolution_clock::now();
+
+    // Stop profiling
+    ProfilerStop();
+
+    std::cout << "insert: " << duration_cast<duration<double>>(t2 - t1).count()
+              << "s, query: "
+              << duration_cast<duration<double>>(t3 - t2).count() << "s"
+              << std::endl;
 }

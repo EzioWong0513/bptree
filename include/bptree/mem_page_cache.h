@@ -1,7 +1,7 @@
 #ifndef _BPTREE_MEM_PAGE_CACHE_H_
 #define _BPTREE_MEM_PAGE_CACHE_H_
 
-#include "bptree/page_cache.h"
+#include "page_cache.h"
 
 #include <shared_mutex>
 #include <unordered_map>
@@ -30,6 +30,8 @@ public:
         lock = boost::upgrade_lock<Page>(*it->second);
         return it->second.get();
     }
+
+    void initialize(size_t num_pages);
 
     virtual void pin_page(Page* page, boost::upgrade_lock<Page>&) {}
     virtual void unpin_page(Page* page, bool dirty, boost::upgrade_lock<Page>&) {}
